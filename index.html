@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Catálogo de Filmes - Usuário</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #111; color: #fff; margin: 0; padding: 0; }
+    header, footer { background: #222; padding: 1rem; text-align: center; }
+    main { padding: 1rem; }
+    .filme {
+      position: relative;
+      display: inline-block;
+      width: 220px;
+      margin: 10px;
+      padding: 1rem;
+      border-radius: 8px;
+      background: #333;
+      text-align: center;
+    }
+    .filme img { width: 100%; border-radius: 8px; }
+    .filme h2 { font-size: 18px; margin: 10px 0; }
+    input, select {
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      width: 100%;
+      border-radius: 4px;
+      border: none;
+    }
+    .filmes-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+    button {
+      margin: 4px 2px;
+      padding: 0.5rem;
+      border: none;
+      border-radius: 4px;
+      background-color: #555;
+      color: white;
+      cursor: pointer;
+    }
+    .novo, .recomendado {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: crimson;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .recomendado {
+      background: #0a0;
+      top: auto;
+      bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Catálogo de Filmes</h1>
+  </header>
+  <main>
+    <input type="text" id="buscaFilme" placeholder="Buscar filme..." oninput="mostrarFilmes()" />
+    <select id="filtroCategoria" onchange="mostrarFilmes()">
+      <option value="">Todas as Categorias</option>
+    </select>
+
+    <div id="listaFilmes" class="filmes-container"></div>
+  </main>
+  <footer>
+    <p>Filmes © 2025</p>
+  </footer>
+
+  <script>
+    function salvarFilmesNoCookie(filmes) {
+      document.cookie = "filmes=" + encodeURIComponent(JSON.stringify(filmes)) + "; path=/";
+    }
+
+    function carregarFilmesDoCookie() {
+      const match = document.cookie.match(/(?:^|; )filmes=([^;]*)/);
+      return match ? JSON.parse(decodeURIComponent(match[1])) : [];
+    }
+
+    function atualizarFiltroCategorias(filmes) {
+      const select = document.getElementById("filtroCategoria");
+      const categorias = [...new Set(filmes.map(f => f.categoria))];
+      select.innerHTML = '<option value="">Todas as Categorias</option>';
+      categorias.forEach(cat => {
+        select.innerHTML += `<option value="${cat}">${cat}</option>`;
+      });
+    }
+
+    function mostrarFilmes() {
+      const container = document.getElementById("listaFilmes");
+      const filtro = document.getElementById("filtroCategoria").value;
+      const busca = document.getElementById("buscaFilme").value.toLowerCase();
+
+      const filmes = carregarFilmesDoCookie();
+      atualizarFiltroCategorias(filmes);
+      container.innerHTML = "";
+
+      const agora = Date.now();
+      const umaSemana = 7 * 24 * 60 * 60 * 1000;
+
+      filmes.forEach(filme => {
+        const nomeMatch = filme.nome.toLowerCase().includes(busca);
+        const catMatch = filtro === "" || filme.categoria === filtro;
+        const eNovo = agora - (filme.criadoEm || 0) < umaSemana;
+
+        const mostrarFilme =
+          (busca ? nomeMatch : filme.patrocinado) &&
+          catMatch;
+
+        if (mostrarFilme) {
+          container.innerHTML += `
+            <div class="filme">
+              ${eNovo ? '<div class="novo">Novo</div>' : ''}
+              ${filme.patrocinado ? '<div class="recomendado">Recomendado</div>' : ''}
+              <h2>${filme.nome}</h2>
+              <img src="${filme.foto}" alt="${filme.nome}" />
+              <p><strong>Categoria:</strong> ${filme.categoria}</p>
+              <p><strong>Likes:</strong> ${filme.likes || 0}</p>
+              <p><strong>Não Likes:</strong> ${filme.dislikes || 0}</p>
+              <p>
+                <a href="${filme.trailer}" target="_blank"><button>Ver Trailer</button></a>
+                <a href="${filme.assistir}" target="_blank"><button>Assistir</button></a>
+              </p>
+            </div>
+          `;
+        }
+      });
+    }
+
+    window.onload = mostrarFilmes;
+  </script>
+</body>
+</html>

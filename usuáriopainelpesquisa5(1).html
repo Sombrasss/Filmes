@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Catálogo de Filmes</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #111; color: #fff; margin: 0; padding: 0; }
+    header, footer { background: #222; padding: 1rem; text-align: center; }
+    main { padding: 1rem; }
+    .filme {
+      position: relative;
+      display: inline-block;
+      width: 220px;
+      margin: 10px;
+      padding: 1rem;
+      border-radius: 8px;
+      background: #333;
+      text-align: center;
+    }
+    .filme img { width: 100%; border-radius: 8px; }
+    .filme h2 { font-size: 18px; margin: 10px 0; }
+    input, select, textarea {
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      width: 100%;
+      border-radius: 4px;
+      border: none;
+    }
+    .filmes-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+    button {
+      margin: 4px 2px;
+      padding: 0.5rem;
+      border: none;
+      border-radius: 4px;
+      background-color: #555;
+      color: white;
+      cursor: pointer;
+    }
+    .novo { position: absolute; top: 8px; left: 8px; background: crimson; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .recomendado { position: absolute; bottom: 8px; left: 8px; background: #0a0; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .admin-panel { margin-top: 2rem; padding: 1rem; background: #222; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <header><h1>Catálogo de Filmes</h1></header>
+
+  <main>
+    <input type="text" id="buscaFilme" placeholder="Buscar filme..." />
+    <select id="filtroCategoria"><option value="">Todas as Categorias</option></select>
+    <div id="listaFilmes" class="filmes-container"></div>
+
+    <div class="admin-panel">
+      <h2>Painel do Administrador</h2>
+      <input type="text" id="nomeFilme" placeholder="Nome do Filme" />
+      <input type="text" id="fotoFilme" placeholder="URL da Foto" />
+      <input type="text" id="categoriaFilme" placeholder="Categoria" />
+      <input type="text" id="categoria2Filme" placeholder="Categoria2 (opcional)" />
+      <input type="text" id="categoria3Filme" placeholder="Categoria3 (opcional)" />
+      <input type="text" id="trailerFilme" placeholder="URL do Trailer" />
+      <input type="text" id="assistirFilme" placeholder="URL para Assistir" />
+      <input type="date" id="dataLancamentoFilme" />
+      <input type="text" id="duracaoFilme" placeholder="Duração" />
+      <input type="text" id="partesFilme" placeholder="Quantidade de Partes" />
+      <select id="tipoFilme">
+        <option value="Filme">Filme</option>
+        <option value="Série">Série</option>
+        <option value="Animação">Animação</option>
+      </select>
+      <textarea id="infoFilme" placeholder="Informações adicionais"></textarea>
+      <select id="patrocinadoFilme">
+        <option value="false">Não Patrocinado</option>
+        <option value="true">Patrocinado</option>
+      </select>
+      <button id="adicionarFilmeButton">Adicionar Filme</button>
+    </div>
+  </main>
+
+  <footer><p>Filmes © 2025</p></footer>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA_rQqylSLX9Ctc5aELTmt7YGu1ooZ2U5c",
+      authDomain: "novo-c8fd1.firebaseapp.com",
+      projectId: "novo-c8fd1",
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let todosFilmes = [];
+
+    async function carregarFilmesDoFirestore() {
+      const snapshot = await db.collection("filmes").get();
+      return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+    }
+
+    function atualizarFiltroCategorias(filmes) {
+      const select = document.getElementById("filtroCategoria");
+      const categorias = new Set();
+      filmes.forEach(f => {
+        if (f.categoria) categorias.add(f.categoria);
+        if (f.categoria2) categorias.add(f.categoria2);
+        if (f.categoria3) categorias.add(f.categoria3);
+      });
+      select.innerHTML = '<option value="">Todas as Categorias</option>';
+      categorias.forEach(cat => {
+        const option = document.createElement("option");
+        option.value = cat;
+        option.textContent = cat;
+        select.appendChild(option);
+      });
+    }
+
+    function criarCardFilme(filme) {
+      const div = document.createElement("div");
+      div.className = "filme";
+      const eNovo = Date.now() - (filme.criadoEm || 0) < 7 * 24 * 60 * 60 * 1000;
+      div.innerHTML = `
+        ${eNovo ? '<div class="novo">Novo</div>' : ''}
+        ${filme.patrocinado === true ? '<div class="recomendado">Recomendado</div>' : ''}
+        <img src="${filme.foto}" />
+        <div id="info_${filme.uid}">
+          <h2>${filme.nome}</h2>
+          <p><strong>Categoria:</strong> ${filme.categoria || ""}</p>
+          <p><strong>Tipo:</strong> ${filme.tipo || ""}</p>
+          <p><strong>Duração:</strong> ${filme.duracao || ""}</p>
+          <p><strong>Partes:</strong> ${filme.partes || ""}</p>
+          <p><strong>Data:</strong> ${filme.dataLancamento || ""}</p>
+          <p><strong>Info:</strong> ${filme.info || ""}</p>
+          <p>
+            <button onclick="entrarModoEdicao('${filme.uid}')">Editar</button>
+            <button onclick="excluirFilme('${filme.uid}')">Excluir</button>
+          </p>
+        </div>
+      `;
+      return div;
+    }
+
+    function entrarModoEdicao(uid) {
+      const filme = todosFilmes.find(f => f.uid === uid);
+      const container = document.getElementById(`info_${uid}`);
+      container.innerHTML = `
+        <input id="edit_nome_${uid}" value="${filme.nome}" placeholder="Nome" />
+        <input id="edit_foto_${uid}" value="${filme.foto}" placeholder="URL da Imagem" />
+        <input id="edit_categoria_${uid}" value="${filme.categoria || ''}" placeholder="Categoria" />
+        <input id="edit_categoria2_${uid}" value="${filme.categoria2 || ''}" placeholder="Categoria 2" />
+        <input id="edit_categoria3_${uid}" value="${filme.categoria3 || ''}" placeholder="Categoria 3" />
+        <input id="edit_tipo_${uid}" value="${filme.tipo || ''}" placeholder="Tipo" />
+        <input id="edit_duracao_${uid}" value="${filme.duracao || ''}" placeholder="Duração" />
+        <input id="edit_partes_${uid}" value="${filme.partes || ''}" placeholder="Partes" />
+        <input id="edit_data_${uid}" value="${filme.dataLancamento || ''}" type="date" />
+        <textarea id="edit_info_${uid}" placeholder="Informações">${filme.info || ''}</textarea>
+        <label>Patrocinado:
+          <select id="edit_patrocinado_${uid}">
+            <option value="false" ${filme.patrocinado ? '' : 'selected'}>Não</option>
+            <option value="true" ${filme.patrocinado ? 'selected' : ''}>Sim</option>
+          </select>
+        </label>
+        <p>
+          <button onclick="salvarEdicao('${uid}')">Salvar</button>
+          <button onclick="inicializarFilmes()">Cancelar</button>
+        </p>
+      `;
+    }
+
+    async function salvarEdicao(uid) {
+      const filmeAtualizado = {
+        nome: document.getElementById(`edit_nome_${uid}`).value,
+        foto: document.getElementById(`edit_foto_${uid}`).value,
+        categoria: document.getElementById(`edit_categoria_${uid}`).value,
+        categoria2: document.getElementById(`edit_categoria2_${uid}`).value,
+        categoria3: document.getElementById(`edit_categoria3_${uid}`).value,
+        tipo: document.getElementById(`edit_tipo_${uid}`).value,
+        duracao: document.getElementById(`edit_duracao_${uid}`).value,
+        partes: document.getElementById(`edit_partes_${uid}`).value,
+        dataLancamento: document.getElementById(`edit_data_${uid}`).value,
+        info: document.getElementById(`edit_info_${uid}`).value,
+        patrocinado: document.getElementById(`edit_patrocinado_${uid}`).value === "true"
+      };
+      await db.collection("filmes").doc(uid).update(filmeAtualizado);
+      inicializarFilmes();
+    }
+
+    async function excluirFilme(uid) {
+      if (confirm("Tem certeza que deseja excluir este filme?")) {
+        await db.collection("filmes").doc(uid).delete();
+        inicializarFilmes();
+      }
+    }
+
+    async function adicionarFilme() {
+      const filme = {
+        nome: document.getElementById("nomeFilme").value,
+        foto: document.getElementById("fotoFilme").value,
+        categoria: document.getElementById("categoriaFilme").value,
+        categoria2: document.getElementById("categoria2Filme").value,
+        categoria3: document.getElementById("categoria3Filme").value,
+        trailer: document.getElementById("trailerFilme").value,
+        assistir: document.getElementById("assistirFilme").value,
+        dataLancamento: document.getElementById("dataLancamentoFilme").value,
+        duracao: document.getElementById("duracaoFilme").value,
+        partes: document.getElementById("partesFilme").value,
+        tipo: document.getElementById("tipoFilme").value,
+        info: document.getElementById("infoFilme").value,
+        patrocinado: document.getElementById("patrocinadoFilme").value === "true",
+        criadoEm: Date.now(),
+        likes: 0,
+        dislikes: 0
+      };
+      await db.collection("filmes").add(filme);
+      inicializarFilmes();
+    }
+
+    async function inicializarFilmes() {
+  todosFilmes = await carregarFilmesDoFirestore();
+  atualizarFiltroCategorias(todosFilmes);
+  
+  // Exibe apenas os patrocinados no carregamento inicial
+  const apenasPatrocinados = todosFilmes.filter(f => f.patrocinado === true);
+  mostrarFilmes(apenasPatrocinados);
+}
+
+    function mostrarFilmes(filmes) {
+      const container = document.getElementById("listaFilmes");
+      const filtro = document.getElementById("filtroCategoria").value;
+      const busca = document.getElementById("buscaFilme").value.toLowerCase();
+      container.innerHTML = "";
+
+      filmes
+        .filter(filme =>
+          (!filtro || [filme.categoria, filme.categoria2, filme.categoria3].includes(filtro)) &&
+          (!busca || filme.nome.toLowerCase().includes(busca))
+        )
+        .sort((a, b) => (b.patrocinado === true ? 1 : 0) - (a.patrocinado === true ? 1 : 0))
+        .forEach(filme => container.appendChild(criarCardFilme(filme)));
+    }
+
+    document.getElementById("buscaFilme").addEventListener("input", () => mostrarFilmes(todosFilmes));
+    document.getElementById("filtroCategoria").addEventListener("change", () => mostrarFilmes(todosFilmes));
+    document.getElementById("adicionarFilmeButton").addEventListener("click", adicionarFilme);
+
+    window.onload = inicializarFilmes;
+  </script>
+</body>
+</html>

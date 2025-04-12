@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Catálogo de Filmes</title>
+
+  <style>
+    body { font-family: Arial, sans-serif; background: #111; color: #fff; margin: 0; padding: 0; }
+    header, footer { background: #222; padding: 1rem; text-align: center; }
+    main { padding: 1rem; }
+    .filme {
+      display: inline-block;
+      width: 220px;
+      margin: 10px;
+      padding: 1rem;
+      border-radius: 8px;
+      background: #333;
+      text-align: center;
+    }
+    .filme img { width: 100%; border-radius: 8px; }
+    .filme h2 { font-size: 18px; margin: 10px 0; }
+    input, textarea, button, select {
+      margin: 0.3rem 0;
+      padding: 0.5rem;
+      width: 100%;
+      border-radius: 4px;
+      border: none;
+    }
+    .admin-panel {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: #222;
+      border-radius: 8px;
+    }
+    .filmes-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+  </style>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
+  <script src="firebase-init.js"></script>
+</head>
+<body>
+
+  <header>
+    <h1>Catálogo de Filmes</h1>
+  </header>
+  <main>
+    <div class="formularioFilme">
+      <h2>Painel do Administrador</h2>
+      <input type="text" id="nomeFilme" placeholder="Nome do Filme" />
+      <input type="text" id="fotoFilme" placeholder="URL da Foto" />
+      <input type="text" id="categoriaFilme" placeholder="Categoria" />
+      <input type="text" id="trailerFilme" placeholder="URL do Trailer" />
+      <input type="text" id="assistirFilme" placeholder="URL para Assistir" />
+      <input type="date" id="dataLancamentoFilme" />
+      <input type="text" id="duracaoFilme" placeholder="Duração" />
+      <input type="text" id="partesFilme" placeholder="Quantidade de Partes" />
+      <select id="tipoFilme">
+        <option value="Filme">Filme</option>
+        <option value="Série">Série</option>
+        <option value="Animação">Animação</option>
+      </select>
+      <textarea id="infoFilme" placeholder="Informações adicionais"></textarea>
+      <select id="patrocinadoFilme">
+        <option value="false">Não Patrocinado</option>
+        <option value="true">Patrocinado</option>
+      </select>
+      <button id="adicionarFilmeButton">Adicionar Filme</button>
+    </div>
+  </main>
+  <footer>
+    <p>Filmes © 2025</p>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>

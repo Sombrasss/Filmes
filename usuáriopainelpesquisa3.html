@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>Filmes</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      padding: 20px;
+      margin: 0;
+    }
+
+    h1, h2 {
+      margin: 20px 0 10px;
+    }
+
+    .filmes-container {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 10px;
+      padding-bottom: 10px;
+    }
+
+    .filme {
+      background: #222;
+      border-radius: 10px;
+      padding: 10px;
+      flex: 0 0 auto;
+      text-align: center;
+      position: relative;
+      width: 140px;
+    }
+
+    .filme.grande {
+      width: 260px;
+    }
+
+    .filme img {
+      width: 100%;
+      border-radius: 10px;
+    }
+
+    .filme button {
+      margin-top: 5px;
+      padding: 5px 10px;
+      background: #f90;
+      color: #000;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .novo {
+      position: absolute;
+      top: 5px;
+      right: 5px;  /* Mudei de left para right */
+      background: #2ecc71;
+      color: white;
+      padding: 2px 6px;
+      font-size: 10px;
+      border-radius: 3px;
+    }
+
+    .recomendado {
+      position: absolute;
+      top: 5px;
+      left: 5px;  /* Mudei de right para left */
+      background: #3498db;
+      color: white;
+      padding: 2px 6px;
+      font-size: 10px;
+      border-radius: 3px;
+    }
+
+    select, input[type="text"] {
+      padding: 8px;
+      margin: 10px 5px 20px 0;
+      width: 180px;
+      border-radius: 5px;
+      border: none;
+    }
+
+    @media (max-width: 600px) {
+      .filme {
+        width: 120px;
+      }
+      .filme.grande {
+        width: 220px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Filmes</h1>
+  <label for="filtroCategoria">Filtrar por categoria:</label>
+  <select id="filtroCategoria" onchange="mostrarFilmes()">
+    <option value="">Todas</option>
+  </select>
+  <br />
+  <label for="buscaFilme">Buscar filme:</label>
+  <input type="text" id="buscaFilme" oninput="mostrarFilmes()" placeholder="Digite o nome..." />
+  <div id="listaFilmes"></div>
+
+  <script>
+    function carregarFilmesDoCookie() {
+      const cookie = document.cookie.split('; ').find(row => row.startsWith('filmes='));
+      if (!cookie) return [];
+      try {
+        return JSON.parse(decodeURIComponent(cookie.split('=')[1]));
+      } catch {
+        return [];
+      }
+    }
+
+    function atualizarFiltroCategorias(filmes) {
+      const filtro = document.getElementById("filtroCategoria");
+      const categorias = new Set();
+      filmes.forEach(f => categorias.add(f.categoria));
+      filtro.innerHTML = '<option value="">Todas</option>';
+      categorias.forEach(cat => {
+        const option = document.createElement("option");
+        option.value = cat;
+        option.textContent = cat;
+        filtro.appendChild(option);
+      });
+    }
+
+    function mostrarFilmes() {
+      const container = document.getElementById("listaFilmes");
+      const filtro = document.getElementById("filtroCategoria").value;
+      const busca = document.getElementById("buscaFilme").value.toLowerCase();
+      const filmes = carregarFilmesDoCookie();
+      container.innerHTML = "";
+
+      const agora = Date.now();
+      const umaSemana = 7 * 24 * 60 * 60 * 1000;
+
+      const patrocinados = filmes.filter(f => f.patrocinado);
+      const naoPatrocinados = filmes.filter(f => !f.patrocinado);
+
+      const agrupados = {};
+      naoPatrocinados.forEach(f => {
+        if (!agrupados[f.categoria]) agrupados[f.categoria] = [];
+        agrupados[f.categoria].push(f);
+      });
+
+      let categoriasProcessadas = [];
+
+      for (const categoria in agrupados) {
+        const lista = agrupados[categoria];
+        if (lista.length === 0) continue;
+        if (filtro && categoria !== filtro) continue;
+
+        categoriasProcessadas.push({ categoria, filmes: lista });
+      }
+
+      // Mostrar patrocinado grande no topo
+      if (patrocinados.length > 0) {
+        const filme = patrocinados[Math.floor(Math.random() * patrocinados.length)];
+        const eNovo = agora - (filme.criadoEm || 0) < umaSemana;
+        container.innerHTML += `
+          <h2>Patrocinado</h2>
+          <div class="filmes-container">
+            <div class="filme grande">
+              ${eNovo ? '<div class="novo">Novo</div>' : ''}
+              <div class="recomendado">Recomendado</div>
+              <h2>${filme.nome}</h2>
+              <img src="${filme.foto}" alt="${filme.nome}" />
+              <p><strong>Categoria:</strong> ${filme.categoria}</p>
+              <p><a href="${filme.assistir}" target="_blank"><button>Assistir</button></a></p>
+            </div>
+          </div>
+        `;
+      }
+
+      for (let i = 0; i < categoriasProcessadas.length; i++) {
+        // Patrocinado a cada 3 categorias
+        if (i > 0 && i % 3 === 0 && patrocinados.length > 0) {
+          const filme = patrocinados[Math.floor(Math.random() * patrocinados.length)];
+          const eNovo = agora - (filme.criadoEm || 0) < umaSemana;
+          container.innerHTML += `
+            <h2>Patrocinado</h2>
+            <div class="filmes-container">
+              <div class="filme grande">
+                ${eNovo ? '<div class="novo">Novo</div>' : ''}
+                <div class="recomendado">Recomendado</div>
+                <h2>${filme.nome}</h2>
+                <img src="${filme.foto}" alt="${filme.nome}" />
+                <p><strong>Categoria:</strong> ${filme.categoria}</p>
+                <p><a href="${filme.assistir}" target="_blank"><button>Assistir</button></a></p>
+              </div>
+            </div>
+          `;
+        }
+
+        // Mostrar filmes da categoria
+        const cat = categoriasProcessadas[i];
+        container.innerHTML += `<h2>${cat.categoria}</h2><div class="filmes-container">`;
+
+        cat.filmes.forEach(filme => {
+          if (busca && !filme.nome.toLowerCase().includes(busca)) return;
+          const eNovo = agora - (filme.criadoEm || 0) < umaSemana;
+          container.innerHTML += `
+            <div class="filme">
+              ${eNovo ? '<div class="novo">Novo</div>' : ''}
+              <h2 style="font-size:14px;">${filme.nome}</h2>
+              <img src="${filme.foto}" alt="${filme.nome}" />
+              <p><a href="${filme.assistir}" target="_blank"><button>Assistir</button></a></p>
+            </div>
+          `;
+        });
+
+        container.innerHTML += `</div>`;
+      }
+
+      atualizarFiltroCategorias(filmes);
+    }
+
+    mostrarFilmes();
+  </script>
+</body>
+</html>
